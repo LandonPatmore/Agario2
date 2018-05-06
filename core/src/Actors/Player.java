@@ -1,12 +1,12 @@
 package Actors;
 
-import Utils.Globals;
+import Utils.Config;
 import com.badlogic.gdx.math.Vector2;
 
 public class Player extends BaseEntity {
 
     public Player(Vector2 position, int name) {
-        super(position, Globals.SIZE, name);
+        super(position, Config.getNumberProperty("player_size"), name);
     }
 
     public void validateMovement(float newX, float newY) {

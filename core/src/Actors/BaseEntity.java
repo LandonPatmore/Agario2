@@ -1,20 +1,15 @@
 package Actors;
 
-import Utils.Globals;
-import com.badlogic.gdx.graphics.Pixmap;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Batch;
+import Utils.Config;
 import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.utils.Array;
 
 public abstract class BaseEntity extends Circle {
 
     //Screen Constraints
-    final int H = Globals.height;
-    final int W = Globals.width;
+    final int H = Config.getHeight();
+    final int W = Config.getWidth();
 
     // Move constants for the circle that can be dynamically changed
     float moveConstantX;

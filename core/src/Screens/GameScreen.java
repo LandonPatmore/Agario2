@@ -3,11 +3,8 @@ package Screens;
 import Actors.Consumable;
 import Actors.Enemy;
 import Actors.Player;
-import Utils.Globals;
-import com.badlogic.gdx.Game;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.Screen;
+import Utils.Config;
+import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -29,8 +26,8 @@ public class GameScreen implements Screen {
     private final Array<Player> players = new Array<>();
 
     // Dimensions
-    private final float H = Globals.height;
-    private final float W = Globals.width;
+    private final float H = Config.getHeight();
+    private final float W = Config.getWidth();
 
     // Amount of each entity
     private final int C_AMT = 1000;
@@ -64,7 +61,12 @@ public class GameScreen implements Screen {
         generatePlayers();
         playerName = new BitmapFont();
         batch = new SpriteBatch();
-        Globals.setDebug(false);
+
+        if(Config.getDebug()){
+            Gdx.app.setLogLevel(Application.LOG_DEBUG);
+        } else {
+            Gdx.app.setLogLevel(Application.LOG_NONE);
+        }
     }
 
     @Override
@@ -360,10 +362,10 @@ public class GameScreen implements Screen {
     }
 
     private float randX() {
-        return MathUtils.random(5, Globals.width - 5);
+        return MathUtils.random(5, Config.getWidth() - 5);
     }
 
     private float randY() {
-        return MathUtils.random(5, Globals.height - 5);
+        return MathUtils.random(5, Config.getHeight() - 5);
     }
 }

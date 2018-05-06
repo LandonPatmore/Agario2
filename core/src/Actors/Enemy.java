@@ -1,13 +1,13 @@
 package Actors;
 
-import Utils.Globals;
+import Utils.Config;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 
 public class Enemy extends BaseEntity {
 
     public Enemy(Vector2 screenPos, int name) {
-        super(screenPos, Globals.SIZE, name);
+        super(screenPos, Config.getNumberProperty("player_size"), name);
         generateInitialMoveConstants();
     }
 

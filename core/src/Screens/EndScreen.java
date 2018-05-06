@@ -1,6 +1,6 @@
 package Screens;
 
-import Utils.Globals;
+import Utils.Config;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Input;
@@ -34,7 +34,7 @@ public class EndScreen implements Screen {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
         checkInput();
         batch.begin();
-        font.draw(batch, String.valueOf("Game Over"), Globals.width / 2, Globals.height / 2);
+        font.draw(batch, String.valueOf("Game Over"), Config.getNumberProperty("width") / 2, Config.getNumberProperty("height") / 2);
         font.getRegion().getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         batch.end();
     }
