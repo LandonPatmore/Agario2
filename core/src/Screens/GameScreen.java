@@ -26,8 +26,8 @@ public class GameScreen implements Screen {
     private Player player;
 
     // Amount of each entity
-    private final int C_AMT = 250;
-    private final int E_AMT = 50;
+    private final int C_AMT = 500;
+    private final int E_AMT = 25;
 
     // Renderer
     private final ShapeRenderer shapeRenderer = new ShapeRenderer();
@@ -122,14 +122,15 @@ public class GameScreen implements Screen {
 
     private void generatePlayerNumber() {
         batch.begin();
-        playerName.draw(batch, "1", player.x, player.y);
+        playerName.draw(batch, "Player", player.x, player.y);
+//        playerName.draw(batch, "Health: "+ player.getHealth(), Gdx.graphics.getWidth() / 2, Gdx.graphics.getHeight() - 50);
         batch.end();
     }
 
     private void generateEnemyHealth() {
         batch.begin();
         for(Enemy e : enemies) {
-            enemyName.draw(batch, String.valueOf(e.getHealth()), e.x, e.y);
+            enemyName.draw(batch, String.valueOf(e.getHealth()) + " | Gen: " + e.getGeneration(), e.x, e.y);
         }
         batch.end();
     }
@@ -137,13 +138,22 @@ public class GameScreen implements Screen {
     private void enemyChecks(Enemy e) {
         e.healthDecrease();
         e.hunt(consumables);
-        checkDead(e);
+        checkEnemyDead(e);
         checkEnemyAteConsumable(e);
     }
 
-    private void checkDead(Enemy e){
+    private void checkEnemyDead(Enemy e){
         if(e.checkIfDead()){
+            consumables.add(new Consumable(new Vector2(e.x,e.y), e.radius));
             enemies.removeValue(e, false);
+        }
+    }
+
+    private void checkPlayerDead(){
+        if(player.checkIfDead()){
+            consumables.add(new Consumable(new Vector2(player.x,player.y), player.radius));
+            player = null;
+            game.setScreen(new EndScreen(game));
         }
     }
 
@@ -172,31 +182,32 @@ public class GameScreen implements Screen {
             float newY = player.y;
 
             if (g.isKeyPressed(W_) && g.isKeyPressed(A)) {
-                newY += 1;
-                newX -= 1;
+                newY += player.getSpeed();
+                newX -= player.getSpeed();
             } else if (g.isKeyPressed(W_) && g.isKeyPressed(D)) {
-                newY += 1;
-                newX += 1;
+                newY += player.getSpeed();
+                newX += player.getSpeed();
             } else if (g.isKeyPressed(S) && g.isKeyPressed(A)) {
-                newY -= 1;
-                newX -= 1;
+                newY -= player.getSpeed();
+                newX -= player.getSpeed();
             } else if (g.isKeyPressed(S) && g.isKeyPressed(D)) {
-                newY -= 1;
-                newX += 1;
+                newY -= player.getSpeed();
+                newX += player.getSpeed();
             } else if (g.isKeyPressed(W_)) {
-                newY += 1;
+                newY += player.getSpeed();
             } else if (g.isKeyPressed(S)) {
-                newY -= 1;
+                newY -= player.getSpeed();
             } else if (g.isKeyPressed(D)) {
-                newX += 1;
+                newX += player.getSpeed();
             } else if (g.isKeyPressed(A)) {
-                newX -= 1;
+                newX -= player.getSpeed();
             }
             player.validateMovement(newX, newY);
     }
 
     private void playerChecks() {
         player.healthDecrease();
+//        checkPlayerDead();
         checkPlayerAteConsumable();
     }
 
@@ -208,7 +219,7 @@ public class GameScreen implements Screen {
 
     private void placeEnemies() {
         for (Enemy e : enemies) {
-//            checkNewEnemyGeneration();
+            checkNewEnemyGeneration(e);
             enemyChecks(e);
             shapeRenderer.setColor(e.color);
             shapeRenderer.circle(e.x, e.y, e.radius);
@@ -220,8 +231,9 @@ public class GameScreen implements Screen {
             for (Enemy e : enemies) {
                 shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
                 shapeRenderer.setColor(1, 0, 0, 1);
-                shapeRenderer.arc(e.x, e.y, e.getVisionRadius(), e.looking(), e.getVision());
-                shapeRenderer.circle(e.x,e.y, e.getPROXIMITY());
+                shapeRenderer.arc(e.x, e.y, e.getDna()[1], e.looking(), e.getDna()[0]);
+                shapeRenderer.setColor(0, 0, 1, 1);
+                shapeRenderer.circle(e.x,e.y, e.getDna()[2]);
                 shapeRenderer.end();
             }
         }
@@ -235,31 +247,28 @@ public class GameScreen implements Screen {
         }
     }
 
-//    private void checkNewEnemyGeneration() {
-//        if (enemies.size < E_AMT) {
-//            Enemy e = generateNewEnemy();
-//            if (e != null) {
-//                enemies.add(e);
-//            }
-//        }
-//    }
-//
+    private void checkNewEnemyGeneration(Enemy e) {
+        Enemy enemy = generateNewEnemy(e);
+        if (enemy != null) {
+            enemies.add(enemy);
+        }
+    }
+
     private void checkNewConsumableGeneration() {
-        if (consumables.size < C_AMT - 10) {
+        if (consumables.size < C_AMT / 2) {
             Consumable c = generateNewConsumable();
             consumables.add(c);
         }
     }
 
-//    private Enemy generateNewEnemy() {
-//        enemyCount++;
-//        for (Player p : players) {
-//            if (enemyCount > E_AMT + 20) {
-//                return null;
-//            }
-//        }
-//        return new Enemy(new Vector2(randX(), randY()), enemyCount);
-//    }
+    private Enemy generateNewEnemy(Enemy e) {
+        float probability = MathUtils.random();
+        if(probability < .0002) {
+            return new Enemy(new Vector2(randX(), randY()), e.getDna(), e.getGeneration());
+        }
+
+        return null;
+    }
 
     private Consumable generateNewConsumable() {
         return new Consumable(new Vector2(randX(), randY()), Config.getNumberProperty("consumable_size"));
@@ -275,12 +284,12 @@ public class GameScreen implements Screen {
     private void generateEnemies() {
         for (int i = 0; i < E_AMT; i++) {
             enemyCount++;
-            enemies.add(new Enemy(new Vector2(randX(), randY())));
+            enemies.add(new Enemy(new Vector2(randX(), randY()), null, 1));
         }
     }
 
     private void generatePlayers() {
-        player = new Player(new Vector2(50, 50), 1);
+        player = new Player(new Vector2(50, 50));
     }
 
     private float randX() {

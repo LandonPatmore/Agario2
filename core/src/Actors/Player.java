@@ -5,7 +5,7 @@ import com.badlogic.gdx.math.Vector2;
 
 public class Player extends Entity {
 
-    public Player(Vector2 position, int name) {
+    public Player(Vector2 position) {
         super(position, Config.getNumberProperty("player_size"));
     }
 

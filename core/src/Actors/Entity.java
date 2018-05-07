@@ -25,7 +25,7 @@ public abstract class Entity extends Circle {
         movementSpeed();
     }
 
-    float getSpeed() {
+    public float getSpeed() {
         return speed;
     }
 
@@ -34,12 +34,15 @@ public abstract class Entity extends Circle {
     }
 
     public void healthDecrease() {
-        health -= 0.15f;
+        health -= 0.3f;
         adjustColor();
     }
 
     public void healthIncrease() {
-        health += 2f;
+        health += 5f;
+        if(health > 255){
+            health = 255;
+        }
         adjustColor();
     }
 
@@ -55,12 +58,6 @@ public abstract class Entity extends Circle {
     public int getHealth(){
         return (int) health;
     }
-
-//    public void move() {
-//        if (this instanceof Consumable) return;
-//        x += speed[0];
-//        y += speed[1];
-//    }
 
     abstract void movementSpeed();
 
