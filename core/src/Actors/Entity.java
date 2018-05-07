@@ -1,80 +1,66 @@
 package Actors;
 
 import Utils.Config;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Circle;
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
-
-import java.util.Arrays;
 
 public abstract class Entity extends Circle {
 
-    // For Enemies and Players
-    private int consumables;
-    private int enemies;
-
-    // id of the entity
-    public final int ID;
+    // health of player
+    private float health = 255;
 
     //Screen Constraints
     final int H = Config.getHeight();
     final int W = Config.getWidth();
 
     // Speed
-    private double[] speed = new double[2];
+    private float speed;
 
-    // Random color for entity
-    public final float R = MathUtils.random();
-    public final float G = MathUtils.random();
-    public final float B = MathUtils.random();
+    // Starting color
+    public final Color color = new Color().set(0,1,0,1);
 
-    Entity(Vector2 position, float radius, int id){
+    Entity(Vector2 position, float radius){
         super(position, radius);
-        this.ID = id;
         movementSpeed();
     }
 
-    double[] getSpeed() {
+    float getSpeed() {
         return speed;
     }
 
-    void initialSpeed(double speed) {
-        Arrays.fill(this.speed, speed);
+    void initialSpeed(float speed) {
+        this.speed = speed;
     }
 
-    public void depreciate() {
-        if (radius > 25) {
-            if (radius < 50) {
-                radius -= radius * 0.00001f;
-            } else {
-                radius -= radius * 0.00009f;
-            }
-        }
+    public void healthDecrease() {
+        health -= 0.15f;
+        adjustColor();
     }
 
-    public void radiusIncrease(float amount) {
-        if (amount == 1) {
-            consumables++;
-            if (consumables < 5) {
-                radius += Math.log(consumables);
-            } else if (consumables < 10) {
-                radius++;
-            } else if (consumables < 20) {
-                radius += 0.5f;
-            } else {
-                radius += 0.2f;
-            }
-        } else {
-            enemies++;
-            radius += (amount * 0.2f);
-        }
+    public void healthIncrease() {
+        health += 2f;
+        adjustColor();
     }
 
-    public void move() {
-        if (this instanceof Consumable) return;
-        x += speed[0];
-        y += speed[1];
+    public void adjustColor(){
+        Color newColor = new Color().set(0,health/255,0,1);
+        color.set(newColor);
     }
+
+    public boolean checkIfDead(){
+        return health < 0;
+    }
+
+    public int getHealth(){
+        return (int) health;
+    }
+
+//    public void move() {
+//        if (this instanceof Consumable) return;
+//        x += speed[0];
+//        y += speed[1];
+//    }
 
     abstract void movementSpeed();
 
