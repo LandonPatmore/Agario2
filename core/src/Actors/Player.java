@@ -3,7 +3,7 @@ package Actors;
 import Utils.Config;
 import com.badlogic.gdx.math.Vector2;
 
-public class Player extends BaseEntity {
+public class Player extends Entity {
 
     public Player(Vector2 position, int name) {
         super(position, Config.getNumberProperty("player_size"), name);
@@ -16,5 +16,8 @@ public class Player extends BaseEntity {
         }
     }
 
-
+    @Override
+    void movementSpeed() {
+        initialSpeed(Config.getNumberProperty("player_speed"));
+    }
 }

@@ -25,13 +25,9 @@ public class GameScreen implements Screen {
     // Players
     private final Array<Player> players = new Array<>();
 
-    // Dimensions
-    private final float H = Config.getHeight();
-    private final float W = Config.getWidth();
-
     // Amount of each entity
     private final int C_AMT = 1000;
-    private final int E_AMT = 30;
+    private final int E_AMT = 10;
 
     // Renderer
     private final ShapeRenderer shapeRenderer = new ShapeRenderer();
@@ -49,10 +45,6 @@ public class GameScreen implements Screen {
     private final int A = Input.Keys.A;
     private final int S = Input.Keys.S;
     private final int D = Input.Keys.D;
-    private final int UP = Input.Keys.UP;
-    private final int L = Input.Keys.LEFT;
-    private final int DN = Input.Keys.DOWN;
-    private final int R = Input.Keys.RIGHT;
 
     public GameScreen(Game game) {
         this.game = game;
@@ -76,8 +68,8 @@ public class GameScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
-
+        consumeInput();
+        Gdx.gl.glClearColor(135/255f, 206/255f, 235/255f, 1);
         drawEntities();
         generatePlayerNumbers();
         checkAllPlayersEaten();
@@ -112,11 +104,11 @@ public class GameScreen implements Screen {
 
     private void drawEntities() {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        consumeInput();
         placeConsumables();
         placeEnemies();
         placePlayers();
         shapeRenderer.end();
+        debugRender();
     }
 
     private void checkAllPlayersEaten() {
@@ -128,7 +120,7 @@ public class GameScreen implements Screen {
     private void generatePlayerNumbers() {
         batch.begin();
         for (Player p : players) {
-            playerName.draw(batch, String.valueOf(p.getId()), p.x, p.y);
+            playerName.draw(batch, String.valueOf(p.ID), p.x, p.y);
         }
         batch.end();
     }
@@ -142,7 +134,7 @@ public class GameScreen implements Screen {
     }
 
     private void moveFunctions(Enemy e) {
-        e.changeDirection();
+//        e.changeDirection();
         e.move();
     }
 
@@ -150,7 +142,7 @@ public class GameScreen implements Screen {
         for (Player p : players) {
             if (e.overlaps(p) && e.radius > p.radius) {
                 players.removeValue(p, false);
-                Gdx.app.debug("Enemy at Player", e.getId() + " ate: " + p.getId());
+                Gdx.app.debug("Enemy at Player", e.ID + " ate: " + p.ID);
                 e.radiusIncrease(p.radius);
             }
         }
@@ -161,7 +153,7 @@ public class GameScreen implements Screen {
             Enemy ee = enemies.get(i);
             if (e.overlaps(ee) && e.radius > ee.radius) {
                 enemies.removeValue(ee, false);
-                Gdx.app.debug("Enemy at Enemy", e.getId() + " ate: " + ee.getId());
+                Gdx.app.debug("Enemy at Enemy", e.ID + " ate: " + ee.ID);
                 e.radiusIncrease(ee.radius);
             }
         }
@@ -171,7 +163,7 @@ public class GameScreen implements Screen {
         for (Consumable c : consumables) {
             if (e.overlaps(c)) {
                 consumables.removeValue(c, false);
-                Gdx.app.debug("Enemy at Consumable", e.getId() + " ate: " + c.getId());
+                Gdx.app.debug("Enemy at Consumable", e.ID + " ate: " + c.ID);
                 e.radiusIncrease(c.radius);
             }
         }
@@ -181,7 +173,7 @@ public class GameScreen implements Screen {
         for (Consumable c : consumables) {
             if (p.overlaps(c)) {
                 consumables.removeValue(c, false);
-                Gdx.app.debug("Player at Consumable", p.getId() + " ate: " + c.getId());
+                Gdx.app.debug("Player at Consumable", p.ID + " ate: " + c.ID);
                 p.radiusIncrease(c.radius);
             }
         }
@@ -191,7 +183,7 @@ public class GameScreen implements Screen {
         for (Enemy e : enemies) {
             if (p.overlaps(e) && p.radius > e.radius) {
                 enemies.removeValue(e, false);
-                Gdx.app.debug("Player at Enemy", p.getId() + " ate: " + e.getId());
+                Gdx.app.debug("Player at Enemy", p.ID + " ate: " + e.ID);
                 p.radiusIncrease(e.radius);
             }
         }
@@ -204,7 +196,7 @@ public class GameScreen implements Screen {
             Player pp = players.get(i);
             if (p.overlaps(pp) && p.radius > pp.radius) {
                 players.removeValue(pp, false);
-                Gdx.app.debug("Player at Player", p.getId() + " ate: " + pp.getId());
+                Gdx.app.debug("Player at Player", p.ID + " ate: " + pp.ID);
                 p.radiusIncrease(pp.radius);
             }
         }
@@ -217,7 +209,7 @@ public class GameScreen implements Screen {
             float newX = p.x;
             float newY = p.y;
 
-            switch (p.getId()) {
+            switch (p.ID) {
                 case 1:
                     if (g.isKeyPressed(W_) && g.isKeyPressed(A)) {
                         newY += 1;
@@ -238,29 +230,6 @@ public class GameScreen implements Screen {
                     } else if (g.isKeyPressed(D)) {
                         newX += 1;
                     } else if (g.isKeyPressed(A)) {
-                        newX -= 1;
-                    }
-                    break;
-                case 2:
-                    if (g.isKeyPressed(UP) && g.isKeyPressed(L)) {
-                        newY += 1;
-                        newX -= 1;
-                    } else if (g.isKeyPressed(UP) && g.isKeyPressed(R)) {
-                        newY += 1;
-                        newX += 1;
-                    } else if (g.isKeyPressed(DN) && g.isKeyPressed(L)) {
-                        newY -= 1;
-                        newX -= 1;
-                    } else if (g.isKeyPressed(DN) && g.isKeyPressed(R)) {
-                        newY -= 1;
-                        newX += 1;
-                    } else if (g.isKeyPressed(UP)) {
-                        newY += 1;
-                    } else if (g.isKeyPressed(DN)) {
-                        newY -= 1;
-                    } else if (g.isKeyPressed(R)) {
-                        newX += 1;
-                    } else if (g.isKeyPressed(L)) {
                         newX -= 1;
                     }
                     break;
@@ -293,6 +262,21 @@ public class GameScreen implements Screen {
             moveFunctions(e);
             shapeRenderer.setColor(e.R, e.G, e.B, 1);
             shapeRenderer.circle(e.x, e.y, e.radius);
+        }
+    }
+
+    private void debugRender(){
+        if(Config.getDebug()) {
+            for (Enemy e : enemies) {
+                shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+                shapeRenderer.setColor(e.R, 0, 0, 1);
+                shapeRenderer.circle(e.x, e.y, e.FLEE_RADIUS);
+                shapeRenderer.setColor(0, e.G, 0, 1);
+                shapeRenderer.circle(e.x, e.y, e.ATTACK_RADIUS);
+                shapeRenderer.setColor(0, 0, e.B, 1);
+                shapeRenderer.circle(e.x, e.y, e.EAT_RADIUS);
+                shapeRenderer.end();
+            }
         }
     }
 
@@ -339,13 +323,13 @@ public class GameScreen implements Screen {
                 return null;
             }
         }
-        return new Consumable(new Vector2(randX(), randY()), consumableCount);
+        return new Consumable(new Vector2(randX(), randY()), Config.getNumberProperty("consumable_size"),consumableCount);
     }
 
     private void generateConsumables() {
         for (int i = 0; i < C_AMT; i++) {
             consumableCount++;
-            consumables.add(new Consumable(new Vector2(randX(), randY()), i));
+            consumables.add(new Consumable(new Vector2(randX(), randY()), Config.getNumberProperty("consumable_size"), i));
         }
     }
 
@@ -358,7 +342,6 @@ public class GameScreen implements Screen {
 
     private void generatePlayers() {
         players.add(new Player(new Vector2(50, 50), 1));
-        players.add(new Player(new Vector2(W - 50, H - 50), 2));
     }
 
     private float randX() {

@@ -1,27 +1,29 @@
 package Actors;
 
 import Utils.Config;
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 
-public class Enemy extends BaseEntity {
+public class Enemy extends Entity {
+
+    // TODO: Needs to be dynamic @Landon
+    public final float FLEE_RADIUS = 50;
+    public final float ATTACK_RADIUS = 75;
+    public final float EAT_RADIUS = 100;
 
     public Enemy(Vector2 screenPos, int name) {
         super(screenPos, Config.getNumberProperty("player_size"), name);
-        generateInitialMoveConstants();
-    }
-
-    private void generateInitialMoveConstants() {
-        moveConstantX = MathUtils.random(-1.5f, 1.5f);
-        moveConstantY = MathUtils.random(-1.5f, 1.5f);
     }
 
     private void reverseX() {
-        setMoveConstantX(-moveConstantX);
+        double[] speed = getSpeed();
+
+        speed[0] = -speed[0];
     }
 
     private void reverseY() {
-        setMoveConstantY(-moveConstantY);
+        double[] speed = getSpeed();
+
+        speed[1] = -speed[1];
     }
 
     public void checkGoingOffScreen() {
@@ -31,5 +33,10 @@ public class Enemy extends BaseEntity {
         if (y > H || y < 0) {
             reverseY();
         }
+    }
+
+    @Override
+    void movementSpeed() {
+        initialSpeed(Config.getNumberProperty("enemy_speed"));
     }
 }
