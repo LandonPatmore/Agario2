@@ -263,7 +263,7 @@ public class GameScreen implements Screen {
 
     private Enemy generateNewEnemy(Enemy e) {
         float probability = MathUtils.random();
-        if(probability < .0002) {
+        if(probability < .0003) {
             return new Enemy(new Vector2(randX(), randY()), e.getDna(), e.getGeneration());
         }
 
