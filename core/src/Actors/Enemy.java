@@ -17,6 +17,8 @@ public class Enemy extends Entity {
     private Vector2 velocity;
     private Vector2 acceleration;
 
+    private Vector2 closest;
+
     private float looking = 150;
 
     public Enemy(Vector2 screenPos, float[] dna, int generation) {
@@ -42,9 +44,9 @@ public class Enemy extends Entity {
             this.dna = dna;
             mutate();
         } else {
-            this.dna[0] = MathUtils.random(0, 200);
+            this.dna[0] = MathUtils.random(0, 100);
             this.dna[1] = MathUtils.random(0, 200);
-            this.dna[2] = MathUtils.random(0, 200);
+            this.dna[2] = MathUtils.random(this.dna[1] - 100, this.dna[1] - 50);
             this.dna[3] = MathUtils.random(0.01f, 0.1f);
             this.dna[4] = MathUtils.random(1, 4);
         }
@@ -53,7 +55,7 @@ public class Enemy extends Entity {
     private void mutate() {
         for (int i = 0; i < dna.length; i++) {
             float probability = MathUtils.random();
-            if (probability > 0.7) {
+            if (probability < 0.01) {
                 if (i < 3) {
                     float mutation = MathUtils.random(-10, 10);
                     dna[i] += mutation;
@@ -70,7 +72,7 @@ public class Enemy extends Entity {
 
     public void hunt(Array<Consumable> consumables){
         Vector2 currentVec = new Vector2(this.x, this.y);
-        Vector2 closest = new Vector2(Float.MAX_VALUE, Float.MAX_VALUE);
+        closest = new Vector2(Float.MAX_VALUE, Float.MAX_VALUE);
         for(Consumable c : consumables){
             Vector2 cVec = new Vector2(c.x,c.y);
             if(currentVec.dst(cVec) < currentVec.dst(closest)){
@@ -127,6 +129,33 @@ public class Enemy extends Entity {
 
     public float looking() {
         return looking;
+    }
+
+    public Vector2 getVelocity() {
+        return velocity;
+    }
+
+    public Vector2 getPosition(){
+        return position;
+    }
+
+    public void setAcceleration(Vector2 acceleration) {
+        this.acceleration = acceleration;
+    }
+
+    public Vector2 getAcceleration() {
+        return acceleration;
+    }
+
+    public Vector2 getClosest() {
+        if(closest.x == Float.MAX_VALUE){
+            return new Vector2(position.x, position.y);
+        }
+        return closest;
+    }
+
+    public void setVelocity(Vector2 velocity) {
+        this.velocity = velocity;
     }
 
     @Override

@@ -6,6 +6,7 @@ import Actors.Player;
 import Utils.Config;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -18,6 +19,9 @@ public class GameScreen implements Screen {
     // Game
     private final Game game;
 
+    // Camera
+    private OrthographicCamera camera;
+
     // Entities
     private final Array<Consumable> consumables = new Array<>();
     private final Array<Enemy> enemies = new Array<>();
@@ -26,7 +30,7 @@ public class GameScreen implements Screen {
     private Player player;
 
     // Amount of each entity
-    private final int C_AMT = 500;
+    private final int C_AMT = 1200;
     private final int E_AMT = 25;
 
     // Renderer
@@ -36,10 +40,6 @@ public class GameScreen implements Screen {
     private final BitmapFont playerName;
     private final BitmapFont enemyName;
     private final SpriteBatch batch;
-
-    // Track amount of Entities that have existed
-    private int enemyCount;
-    private int consumableCount;
 
     // Inputs
     private final int W_ = Input.Keys.W;
@@ -65,11 +65,16 @@ public class GameScreen implements Screen {
 
     @Override
     public void show() {
-
+        camera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        camera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        camera.update();
     }
 
     @Override
     public void render(float delta) {
+        shapeRenderer.setProjectionMatrix(camera.combined);
+        batch.setProjectionMatrix(camera.combined);
+        setCamera();
         consumeInput();
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
         drawEntities();
@@ -105,6 +110,11 @@ public class GameScreen implements Screen {
         batch.dispose();
     }
 
+    private void setCamera(){
+        camera.position.set(player.getPoisition(), 0);
+        camera.update();
+    }
+
     private void drawEntities() {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         placeConsumables();
@@ -137,9 +147,21 @@ public class GameScreen implements Screen {
 
     private void enemyChecks(Enemy e) {
         e.healthDecrease();
+        checkEnemyCollision(e);
         e.hunt(consumables);
         checkEnemyDead(e);
         checkEnemyAteConsumable(e);
+    }
+
+    private void checkEnemyCollision(Enemy e){
+        for(int i = 0; i < enemies.size; i++){
+            Enemy enemy = enemies.get(i);
+            if(e != enemy){
+                if(e.getPosition().dst(enemy.getPosition()) <= (e.radius + 2) * 2){
+                    e.setVelocity(new Vector2(-e.getVelocity().x, -e.getVelocity().y));
+                }
+            }
+        }
     }
 
     private void checkEnemyDead(Enemy e){
@@ -232,6 +254,8 @@ public class GameScreen implements Screen {
                 shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
                 shapeRenderer.setColor(1, 0, 0, 1);
                 shapeRenderer.arc(e.x, e.y, e.getDna()[1], e.looking(), e.getDna()[0]);
+                shapeRenderer.setColor(0, 1, 0, 1);
+                shapeRenderer.line(e.getPosition(), e.getClosest());
                 shapeRenderer.setColor(0, 0, 1, 1);
                 shapeRenderer.circle(e.x,e.y, e.getDna()[2]);
                 shapeRenderer.end();
@@ -255,7 +279,7 @@ public class GameScreen implements Screen {
     }
 
     private void checkNewConsumableGeneration() {
-        if (consumables.size < C_AMT / 2) {
+        if (consumables.size < C_AMT / 2 - 200) {
             Consumable c = generateNewConsumable();
             consumables.add(c);
         }
@@ -263,7 +287,7 @@ public class GameScreen implements Screen {
 
     private Enemy generateNewEnemy(Enemy e) {
         float probability = MathUtils.random();
-        if(probability < .0003) {
+        if(probability < .00003) {
             return new Enemy(new Vector2(randX(), randY()), e.getDna(), e.getGeneration());
         }
 
@@ -276,15 +300,16 @@ public class GameScreen implements Screen {
 
     private void generateConsumables() {
         for (int i = 0; i < C_AMT; i++) {
-            consumableCount++;
             consumables.add(new Consumable(new Vector2(randX(), randY()), Config.getNumberProperty("consumable_size")));
         }
     }
 
     private void generateEnemies() {
         for (int i = 0; i < E_AMT; i++) {
-            enemyCount++;
-            enemies.add(new Enemy(new Vector2(randX(), randY()), null, 1));
+            float x = randX();
+            float y = randY();
+
+            enemies.add(new Enemy(new Vector2(x, y), null, 1));
         }
     }
 
