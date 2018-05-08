@@ -225,18 +225,32 @@ public class Enemy_Smart extends Entity {
             this.dna = dna;
             mutate();
         } else {
-            this.dna[0] = MathUtils.random(radius, 200); // Vision width
-            this.dna[1] = MathUtils.random(radius, 200); // Vision Length
-            this.dna[2] = MathUtils.random(0.01f, 0.05f); // Force
-            this.dna[3] = MathUtils.random(1, 4); // Speed
-            this.dna[4] = MathUtils.random(radius, 200); // Proximity attack Player
-            this.dna[5] = MathUtils.random(radius, 200); // Proximity flee Player
-            this.dna[6] = MathUtils.random(radius, 200); // Proximity eat Consumable
-            this.dna[7] = MathUtils.random(radius, 200); // Proximity flee Trap
-            this.dna[8] = MathUtils.random(0, 10); // Consumable Attraction
-            this.dna[9] = MathUtils.random(0, 10); // Poison Attraction
-            this.dna[10] = MathUtils.random(0.15f, 0.3f); // Health Depreciation
-            this.dna[11] = MathUtils.random(this.dna[10] * 2, this.dna[10] * 4); // How much they life steal from another Player
+
+            this.dna[0] = Config.getNumberProperty("vision_width");
+            this.dna[1] = Config.getNumberProperty("vision_length");
+            this.dna[2] = Config.getFloatProperty("force");
+            this.dna[3] = Config.getNumberProperty("speed");
+            this.dna[4] = Config.getNumberProperty("prox_attack");
+            this.dna[5] = Config.getNumberProperty("prox_flee");
+            this.dna[6] = Config.getNumberProperty("prox_cons");
+            this.dna[7] = Config.getNumberProperty("prox_trap");
+            this.dna[8] = Config.getNumberProperty("cons_attr");
+            this.dna[9] = Config.getNumberProperty("pois_attr");
+            this.dna[10] = Config.getFloatProperty("health_dep");
+            this.dna[11] = Config.getFloatProperty("lifesteal");
+
+            this.dna[0] = MathUtils.random(radius, Config.getNumberProperty("vision_width")); // Vision width
+            this.dna[1] = MathUtils.random(radius, Config.getNumberProperty("vision_length")); // Vision Length
+            this.dna[2] = MathUtils.random(0.01f, Config.getFloatProperty("force")); // Force
+            this.dna[3] = MathUtils.random(1, Config.getNumberProperty("speed")); // Speed
+            this.dna[4] = MathUtils.random(radius, Config.getNumberProperty("prox_attack")); // Proximity attack Player
+            this.dna[5] = MathUtils.random(radius, Config.getNumberProperty("prox_flee")); // Proximity flee Player
+            this.dna[6] = MathUtils.random(radius, Config.getNumberProperty("prox_cons")); // Proximity eat Consumable
+            this.dna[7] = MathUtils.random(radius, Config.getNumberProperty("prox_trap")); // Proximity flee Trap
+            this.dna[8] = MathUtils.random(0, Config.getNumberProperty("cons_attr")); // Consumable Attraction
+            this.dna[9] = MathUtils.random(0, Config.getNumberProperty("pois_attr")); // Poison Attraction
+            this.dna[10] = MathUtils.random(0.15f, Config.getFloatProperty("health_dep")); // Health Depreciation
+            this.dna[11] = MathUtils.random(this.dna[10] * 2, Config.getFloatProperty("lifesteal")); // How much they life steal from another Player
 
         }
     }

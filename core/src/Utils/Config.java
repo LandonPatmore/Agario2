@@ -36,7 +36,10 @@ public class Config {
         return Integer.parseInt(propFile.getProperty(p));
     }
 
-    // TODO: Do it so that we don't always attempt to read the property all the time @Landon
+    public static float getFloatProperty(String p){
+        return Float.parseFloat(propFile.getProperty(p));
+    }
+
     public static int getHeight(){
         String p = getProperty("height");
         if(p == null){
@@ -54,6 +57,7 @@ public class Config {
             return Integer.parseInt(p);
         }
     }
+
 
     public static boolean getDebug() {
         String p = getProperty("debug");

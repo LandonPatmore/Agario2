@@ -30,6 +30,10 @@ public abstract class Entity extends Circle {
         this.velocity = new Vector2(0, 0);
     }
 
+    public void setColor(Color color) {
+        this.color = color;
+    }
+
     public Color getColor() {
         return color;
     }

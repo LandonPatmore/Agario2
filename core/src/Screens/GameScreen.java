@@ -1,9 +1,6 @@
 package Screens;
 
-import Actors.Consumable;
-import Actors.Enemy_Smart;
-import Actors.Entity;
-import Actors.Player;
+import Actors.*;
 import Utils.Config;
 import Utils.Score;
 import com.badlogic.gdx.*;
@@ -28,6 +25,8 @@ public class GameScreen implements Screen {
     private Array<Entity> entities = new Array<>();
     private Array<Consumable> consumables = new Array<>();
 
+    private final Array<Enemy_Dumb> enemies = new Array<>();
+
     private Array<Score> leaderboard = new Array<>();
 
     private boolean debug = Config.getDebug();
@@ -50,6 +49,7 @@ public class GameScreen implements Screen {
         generateConsumables();
         generateEnemies();
         generatePlayer();
+        generateDumbEnemies();
         playerName = new BitmapFont();
         enemyName = new BitmapFont();
         lb = new BitmapFont();
@@ -81,6 +81,7 @@ public class GameScreen implements Screen {
         generatePlayerNumber();
         generateEnemyHealth();
         generateLeaderboard();
+        checkDumbKilled();
         checkAllPlayersEaten();
     }
 
@@ -109,6 +110,12 @@ public class GameScreen implements Screen {
         playerName.dispose();
         shapeRenderer.dispose();
         batch.dispose();
+    }
+
+    private void generateDumbEnemies(){
+        for(int i = 0; i < 10; i++){
+            enemies.add(new Enemy_Dumb(new Vector2(randX(),randY()), i));
+        }
     }
 
     private void generateLeaderboard(){
@@ -218,6 +225,18 @@ public class GameScreen implements Screen {
         }
     }
 
+    private void checkDumbKilled(){
+        for(Enemy_Dumb e : enemies){
+            for(int i = 0; i < entities.size; i++) {
+                if (entities.get(i) != null) {
+                    if (e.overlaps(entities.get(i))) {
+                        entities.get(i).setHealth(0);
+                    }
+                }
+            }
+        }
+    }
+
     private void consumeInput() {
         Input g = Gdx.input;
         if(g.isKeyJustPressed(Input.Keys.SPACE)){
@@ -253,12 +272,20 @@ public class GameScreen implements Screen {
     private void placeEnemies() {
         for (Entity e : entities) {
             if(!(e instanceof Player) && e != null) {
-                checkNewEnemyGeneration((Enemy_Smart) e);
                 runEnemy((Enemy_Smart) e);
                 shapeRenderer.setColor(e.getColor());
                 shapeRenderer.circle(e.x, e.y, e.radius);
+                checkNewEnemyGeneration((Enemy_Smart) e);
             }
         }
+
+        for (Enemy_Dumb e : enemies) {
+            e.checkGoingOffScreen();
+            e.move();
+            shapeRenderer.setColor(e.getColor());
+            shapeRenderer.circle(e.x, e.y, e.radius);
+        }
+
     }
 
     private void debugRender(){
@@ -277,6 +304,10 @@ public class GameScreen implements Screen {
                     shapeRenderer.circle(e.x, e.y, enemy.consumableProximity());
                     shapeRenderer.setColor(0, 0, 1, 1);
                     shapeRenderer.circle(e.x, e.y, enemy.fleeProximity());
+                    shapeRenderer.setColor(0, 1, 0, 1);
+                    shapeRenderer.rectLine(e.getPosition(), e.getPosition().add(((Enemy_Smart) e).consumableAttraction() * 10, ((Enemy_Smart) e).consumableAttraction() * 10), 6);
+                    shapeRenderer.setColor(1, 0, 0, 1);
+                    shapeRenderer.rectLine(e.getPosition(), e.getPosition().add(((Enemy_Smart) e).poisionAttraction() * 10, ((Enemy_Smart) e).poisionAttraction() * 10), 3);
                     shapeRenderer.end();
                 }
             }

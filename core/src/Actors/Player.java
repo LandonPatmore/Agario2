@@ -9,7 +9,7 @@ import com.badlogic.gdx.math.Vector2;
 public class Player extends Entity {
 
     private final int SPEED = Config.getNumberProperty("player_speed");
-    private final float MAX_FORCE = 0.03f;
+    private final float MAX_FORCE = 0.05f;
 
     // Inputs
     private final int W = Input.Keys.W;
