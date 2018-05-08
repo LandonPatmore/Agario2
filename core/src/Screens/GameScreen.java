@@ -111,7 +111,7 @@ public class GameScreen implements Screen {
     }
 
     private void setCamera(){
-        camera.position.set(player.getPoisition(), 0);
+//        camera.position.set(player.getPosition(), 0);
         camera.update();
     }
 
@@ -148,7 +148,7 @@ public class GameScreen implements Screen {
     private void enemyChecks(Enemy e) {
         e.healthDecrease();
         checkEnemyCollision(e);
-        e.hunt(consumables);
+        e.hunt(consumables, enemies);
         checkEnemyDead(e);
         checkEnemyAteConsumable(e);
     }
@@ -157,8 +157,8 @@ public class GameScreen implements Screen {
         for(int i = 0; i < enemies.size; i++){
             Enemy enemy = enemies.get(i);
             if(e != enemy){
-                if(e.getPosition().dst(enemy.getPosition()) <= (e.radius + 2) * 2){
-                    e.setVelocity(new Vector2(-e.getVelocity().x, -e.getVelocity().y));
+                if(e.overlaps(enemy) && e.getHealth() > enemy.getHealth()){
+                    enemies.removeValue(enemy, false);
                 }
             }
         }
@@ -203,27 +203,27 @@ public class GameScreen implements Screen {
             float newX = player.x;
             float newY = player.y;
 
-            if (g.isKeyPressed(W_) && g.isKeyPressed(A)) {
-                newY += player.getSpeed();
-                newX -= player.getSpeed();
-            } else if (g.isKeyPressed(W_) && g.isKeyPressed(D)) {
-                newY += player.getSpeed();
-                newX += player.getSpeed();
-            } else if (g.isKeyPressed(S) && g.isKeyPressed(A)) {
-                newY -= player.getSpeed();
-                newX -= player.getSpeed();
-            } else if (g.isKeyPressed(S) && g.isKeyPressed(D)) {
-                newY -= player.getSpeed();
-                newX += player.getSpeed();
-            } else if (g.isKeyPressed(W_)) {
-                newY += player.getSpeed();
-            } else if (g.isKeyPressed(S)) {
-                newY -= player.getSpeed();
-            } else if (g.isKeyPressed(D)) {
-                newX += player.getSpeed();
-            } else if (g.isKeyPressed(A)) {
-                newX -= player.getSpeed();
-            }
+//            if (g.isKeyPressed(W_) && g.isKeyPressed(A)) {
+//                newY += player.getSpeed();
+//                newX -= player.getSpeed();
+//            } else if (g.isKeyPressed(W_) && g.isKeyPressed(D)) {
+//                newY += player.getSpeed();
+//                newX += player.getSpeed();
+//            } else if (g.isKeyPressed(S) && g.isKeyPressed(A)) {
+//                newY -= player.getSpeed();
+//                newX -= player.getSpeed();
+//            } else if (g.isKeyPressed(S) && g.isKeyPressed(D)) {
+//                newY -= player.getSpeed();
+//                newX += player.getSpeed();
+//            } else if (g.isKeyPressed(W_)) {
+//                newY += player.getSpeed();
+//            } else if (g.isKeyPressed(S)) {
+//                newY -= player.getSpeed();
+//            } else if (g.isKeyPressed(D)) {
+//                newX += player.getSpeed();
+//            } else if (g.isKeyPressed(A)) {
+//                newX -= player.getSpeed();
+//            }
             player.validateMovement(newX, newY);
     }
 
@@ -287,7 +287,7 @@ public class GameScreen implements Screen {
 
     private Enemy generateNewEnemy(Enemy e) {
         float probability = MathUtils.random();
-        if(probability < .00003) {
+        if(probability < .0005) {
             return new Enemy(new Vector2(randX(), randY()), e.getDna(), e.getGeneration());
         }
 
@@ -308,7 +308,6 @@ public class GameScreen implements Screen {
         for (int i = 0; i < E_AMT; i++) {
             float x = randX();
             float y = randY();
-
             enemies.add(new Enemy(new Vector2(x, y), null, 1));
         }
     }

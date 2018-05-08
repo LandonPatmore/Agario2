@@ -7,10 +7,11 @@ public class Consumable extends Entity {
 
     public Consumable(Vector2 screenPos, float size) {
         super(screenPos, size);
+        setPosition(screenPos);
     }
 
     @Override
-    void movementSpeed() {
-        initialSpeed(0);
+    void validateMovement(float x, float y) {
+
     }
 }

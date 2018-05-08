@@ -23,6 +23,7 @@ public class Enemy extends Entity {
 
     public Enemy(Vector2 screenPos, float[] dna, int generation) {
         super(screenPos, Config.getNumberProperty("player_size"));
+        setPosition(screenPos);
         this.generation = generation;
         setDna(dna);
         position = new Vector2(this.x, this.y);
@@ -46,7 +47,7 @@ public class Enemy extends Entity {
         } else {
             this.dna[0] = MathUtils.random(0, 100);
             this.dna[1] = MathUtils.random(0, 200);
-            this.dna[2] = MathUtils.random(this.dna[1] - 100, this.dna[1] - 50);
+            this.dna[2] = MathUtils.random(this.dna[1] / 4, this.dna[1] / 2);
             this.dna[3] = MathUtils.random(0.01f, 0.1f);
             this.dna[4] = MathUtils.random(1, 4);
         }
@@ -70,14 +71,27 @@ public class Enemy extends Entity {
         }
     }
 
-    public void hunt(Array<Consumable> consumables){
+    public void hunt(Array<Consumable> consumables, Array<Enemy> enemies){
         Vector2 currentVec = new Vector2(this.x, this.y);
         closest = new Vector2(Float.MAX_VALUE, Float.MAX_VALUE);
         for(Consumable c : consumables){
             Vector2 cVec = new Vector2(c.x,c.y);
-            if(currentVec.dst(cVec) < currentVec.dst(closest)){
-                if(inSight(cVec) || currentVec.dst(cVec) <= dna[2]) {
+            if(inSight(cVec) || currentVec.dst(cVec) <= dna[2]) {
+                if(currentVec.dst(cVec) < currentVec.dst(closest)){
                     closest = cVec;
+                }
+            }
+        }
+
+        for(int i = 0; i < enemies.size; i++){
+            Enemy e = enemies.get(i);
+            if(e != this) {
+                Vector2 cVec = new Vector2(e.x, e.y);
+                if (currentVec.dst(cVec) < currentVec.dst(closest)) {
+                    if (inSight(cVec) || currentVec.dst(cVec) <= dna[2]) {
+                        if(e.getHealth() < this.getHealth())
+                        closest = cVec;
+                    }
                 }
             }
         }
@@ -116,8 +130,8 @@ public class Enemy extends Entity {
     }
 
     private boolean inSight(Vector2 target) {
-        float pos = Math.abs(looking) + 60;
-        float neg = Math.abs(looking) - 60;
+        float pos = Math.abs(looking) + dna[0] / 2;
+        float neg = Math.abs(looking) - dna[0] / 2;
 
         float targetPosition = Math.abs(watchTarget(target));
         return (targetPosition <= pos && targetPosition >= neg) && (VectorHelper.distanceToTarget(position, target) <= dna[1]);
@@ -135,18 +149,6 @@ public class Enemy extends Entity {
         return velocity;
     }
 
-    public Vector2 getPosition(){
-        return position;
-    }
-
-    public void setAcceleration(Vector2 acceleration) {
-        this.acceleration = acceleration;
-    }
-
-    public Vector2 getAcceleration() {
-        return acceleration;
-    }
-
     public Vector2 getClosest() {
         if(closest.x == Float.MAX_VALUE){
             return new Vector2(position.x, position.y);
@@ -159,7 +161,7 @@ public class Enemy extends Entity {
     }
 
     @Override
-    void movementSpeed() {
-        initialSpeed(0);
+    void validateMovement(float x, float y) {
+
     }
 }
