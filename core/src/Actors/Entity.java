@@ -6,48 +6,68 @@ import com.badlogic.gdx.math.Vector2;
 
 public abstract class Entity extends Circle {
 
-    // health of player
     private float health = 255;
 
-    // Starting color
-    public final Color color = new Color().set(0,1,0,1);
+    private Vector2 velocity;
+    private Vector2 acceleration;
 
-    Entity(Vector2 position, float radius){
+    private Color color;
+
+
+    public Entity(Vector2 position, float radius) {
         super(position, radius);
-        setPosition(position);
+
+        this.color = new Color(0,1,0,1);
+
+        this.acceleration = new Vector2(0, 0);
+        this.velocity = new Vector2(0, 0);
     }
 
-    abstract void validateMovement(float x, float y);
-
-    public void healthDecrease() {
-        health -= 0.35f;
-        adjustColor();
+    public Color getColor() {
+        return color;
     }
 
-    public void healthIncrease() {
-        health += 5f;
-        adjustColor();
+    public Vector2 getPosition() {
+        return new Vector2(x,y);
     }
 
-    private void adjustColor(){
-        float inverse = 255 - health;
-        color.set(inverse / 255,health/255,0,1);
+    abstract void steer(Vector2 whereTo);
+
+    abstract void updateMovement();
+
+    public Vector2 getVelocity() {
+        return velocity;
     }
 
-    public boolean checkIfDead(){
-        return health < 0;
+    public Vector2 getAcceleration() {
+        return acceleration;
+    }
+
+    public void applyForce(Vector2 force) {
+        acceleration.add(force);
+    }
+
+    public float getHealth() {
+        return health;
     }
 
     public void setHealth(float health) {
         this.health = health;
     }
 
-    public int getHealth(){
-        return (int) health;
+    abstract void healthDecrease();
+
+    // TODO: Based on consumable eaten
+    public void healthIncrease() {
+        health += 5f;
+        if(health > 255){
+            health = 255;
+        }
+        adjustColor();
     }
 
-    public Vector2 getPosition(){
-        return new Vector2(x,y);
+    public void adjustColor(){
+        Color newColor = new Color().set(0,health/255,0,1);
+        color.set(newColor);
     }
-
 }
