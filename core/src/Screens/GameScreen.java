@@ -5,6 +5,7 @@ import Actors.Enemy_Smart;
 import Actors.Entity;
 import Actors.Player;
 import Utils.Config;
+import Utils.Score;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -23,18 +24,16 @@ public class GameScreen implements Screen {
     // Camera
     private OrthographicCamera camera;
 
-    // Entities
-//    private final Array<Consumable> consumables = new Array<>();
-//    private final Array<Enemy_Smart> enemies = new Array<>();
-
-    // Entity
-    private Player player;
-
-    private Array<Entity> enemies = new Array<>();
+    private Array<Player> players = new Array<>();
+    private Array<Entity> entities = new Array<>();
     private Array<Consumable> consumables = new Array<>();
 
+    private Array<Score> leaderboard = new Array<>();
+
+    private boolean debug = Config.getDebug();
+
     // Amount of each entity
-    private final int C_AMT = 2000;
+    private final int C_AMT = 1000;
     private final int E_AMT = 10;
 
     // Renderer
@@ -43,15 +42,17 @@ public class GameScreen implements Screen {
     //Bitmap Font
     private final BitmapFont playerName;
     private final BitmapFont enemyName;
+    private final BitmapFont lb;
     private final SpriteBatch batch;
 
     public GameScreen(Game game) {
         this.game = game;
         generateConsumables();
         generateEnemies();
-        generatePlayers();
+        generatePlayer();
         playerName = new BitmapFont();
         enemyName = new BitmapFont();
+        lb = new BitmapFont();
         batch = new SpriteBatch();
 
         if(Config.getDebug()){
@@ -79,7 +80,8 @@ public class GameScreen implements Screen {
         drawEntities();
         generatePlayerNumber();
         generateEnemyHealth();
-//        checkAllPlayersEaten();
+        generateLeaderboard();
+        checkAllPlayersEaten();
     }
 
     @Override
@@ -109,8 +111,23 @@ public class GameScreen implements Screen {
         batch.dispose();
     }
 
+    private void generateLeaderboard(){
+        leaderboard.sort();
+        batch.begin();
+        if(leaderboard.size > 5) {
+            for (int i = 0; i < 5; i++) {
+                playerName.draw(batch, i + 1 + " : " + leaderboard.get(i).toString(), Gdx.graphics.getWidth() / 1.5f, Gdx.graphics.getHeight() - (40 * i));
+            }
+        } else {
+            for (int i = 0; i < leaderboard.size; i++) {
+                playerName.draw(batch, i + 1 + " : " + leaderboard.get(i).toString(), Gdx.graphics.getWidth() / 1.5f, Gdx.graphics.getHeight() - (40 * i));
+            }
+        }
+        batch.end();
+    }
+
     private void setCamera(){
-//        camera.position.set(player.getPosition(), 0);
+        camera.update();
         camera.update();
     }
 
@@ -123,75 +140,79 @@ public class GameScreen implements Screen {
         debugRender();
     }
 
-//    private void checkAllPlayersEaten() {
-//        if (enemies.size == 0 || consumables.size == 0) {
-//            game.setScreen(new EndScreen(game));
-//        }
-//    }
+    private void checkAllPlayersEaten() {
+        if (entities.size == 0 || consumables.size == 0) {
+            game.setScreen(new EndScreen(game));
+        }
+    }
 
     private void generatePlayerNumber() {
         batch.begin();
-        playerName.draw(batch, "Player", player.x, player.y);
-//        playerName.draw(batch, "Health: "+ player.getHealth(), Gdx.graphics.getWidth() / 2, Gdx.graphics.getHeight() - 50);
+        for(Player p : players) {
+            playerName.draw(batch, "Player", p.x, p.y);
+        playerName.draw(batch, "Health: "+ (int) p.getHealth(), Gdx.graphics.getWidth() / 2, Gdx.graphics.getHeight() - 50);
+        }
         batch.end();
     }
 
     private void generateEnemyHealth() {
         batch.begin();
-        for(Entity e : enemies) {
-            Enemy_Smart enemy = (Enemy_Smart) e;
-            enemyName.draw(batch, String.valueOf((int)e.getHealth()) + " | Gen: " + enemy.getGeneration() + " | " + ((Enemy_Smart) e).currentState(), e.x, e.y);
+        for(Entity e : entities) {
+            if(!(e instanceof Player) && e != null) {
+                Enemy_Smart enemy = (Enemy_Smart) e;
+                enemyName.draw(batch, "Name: " + e.getName() + " | " + String.valueOf((int) e.getHealth()) + " | Gen: " + enemy.getGeneration() + " | " + ((Enemy_Smart) e).currentState(), e.x, e.y);
+
+            }
         }
         batch.end();
     }
 
     private void runEnemy(Enemy_Smart e) {
         e.healthDecrease();
-//        checkEnemyCollision(e);
-        e.determineState(consumables, enemies);
+        e.determineState(consumables, entities);
         checkEnemyDead(e);
         checkEnemyAteConsumable(e);
     }
 
-//    private void checkEnemyCollision(Enemy_Smart e){
-//        for(int i = 0; i < enemies.size; i++){
-//            Enemy_Smart enemy = enemies.get(i);
-//            if(e != enemy){
-//                if(e.overlaps(enemy) && e.getHealth() > enemy.getHealth()){
-//                    enemies.removeValue(enemy, false);
-//                }
-//            }
-//        }
-//    }
-
     private void checkEnemyDead(Enemy_Smart e){
         if(e.checkIfDead()){
-            consumables.add(new Consumable(new Vector2(e.x,e.y), e.radius));
-            enemies.removeValue(e, false);
+            leaderboard.add(new Score(e.getLifeSpan(), e.getName()));
+            Consumable c = new Consumable(new Vector2(e.x,e.y), e.radius / 2, false);
+            c.setEnergy(10);
+
+            consumables.add(c);
+            entities.removeValue(e, false);
         }
     }
 
-//    private void checkPlayerDead(){
-//        if(player.checkIfDead()){
-//            consumables.add(new Consumable(new Vector2(player.x,player.y), player.radius));
-//            player = null;
-//            game.setScreen(new EndScreen(game));
-//        }
-//    }
+    private void checkPlayerDead(Player p){
+            if (p.checkIfDead()) {
+                leaderboard.add(new Score(p.getLifeSpan(), p.getName()));
+                Consumable c = new Consumable(new Vector2(p.x,p.y), p.radius / 2, false);
+                c.setEnergy(10);
 
-//    private void checkPlayerAteConsumable() {
-//        for (Consumable c : consumables) {
-//            if (player.overlaps(c)) {
-//                player.healthIncrease();
-//                consumables.removeValue(c, false);
-//            }
-//        }
-//    }
+                players.removeValue(p, false);
+                entities.removeValue(p, false);
+                consumables.add(c);
+            }
+
+    }
+
+    private void checkPlayerAteConsumable() {
+        for(Player p : players) {
+            for (Consumable c : consumables) {
+                if (p.overlaps(c)) {
+                    p.healthIncrease(c.getEnergy());
+                    consumables.removeValue(c, false);
+                }
+            }
+        }
+    }
 
     private void checkEnemyAteConsumable(Enemy_Smart e) {
         for (Consumable c : consumables) {
             if (e.overlaps(c)) {
-                e.healthIncrease();
+                e.healthIncrease(c.getEnergy());
                 consumables.removeValue(c, false);
             }
         }
@@ -200,49 +221,64 @@ public class GameScreen implements Screen {
     private void consumeInput() {
         Input g = Gdx.input;
         if(g.isKeyJustPressed(Input.Keys.SPACE)){
-            enemies.add(new Enemy_Smart(new Vector2(randX(), randY()), null, 1));
+            entities.add(new Enemy_Smart(new Vector2(randX(), randY()), null, 1, entities.size++));
+        } else if(g.isKeyJustPressed(Input.Keys.P)){
+            generatePlayer();
+        } else if(g.isKeyJustPressed(Input.Keys.Y)){
+            debug = true;
+        } else if(g.isKeyJustPressed(Input.Keys.U)){
+            debug = false;
         }
-        player.move(g);
+        for(Player p : players) {
+            p.move(g);
+        }
     }
 
-//    private void playerChecks() {
-//        player.healthDecrease();
-////        checkPlayerDead();
-//        checkPlayerAteConsumable();
-//    }
+    private void playerChecks(Player p) {
+            p.healthDecrease();
+            checkPlayerDead(p);
+            checkPlayerAteConsumable();
+    }
 
     private void placePlayer() {
-//            playerChecks();
-            shapeRenderer.setColor(player.getColor());
-            shapeRenderer.circle(player.x, player.y, player.radius);
+        for(int i = 0; i < players.size; i++) {
+            Player p = players.get(i);
+            playerChecks(p);
+            shapeRenderer.setColor(p.getColor());
+            shapeRenderer.circle(p.x, p.y, p.radius);
             shapeRenderer.circle(Gdx.graphics.getWidth() / 2, Gdx.graphics.getHeight() / 2, 2);
+        }
     }
 
     private void placeEnemies() {
-        for (Entity e : enemies) {
-            checkNewEnemyGeneration((Enemy_Smart) e);
-            runEnemy((Enemy_Smart) e);
-            shapeRenderer.setColor(e.getColor());
-            shapeRenderer.circle(e.x, e.y, e.radius);
+        for (Entity e : entities) {
+            if(!(e instanceof Player) && e != null) {
+                checkNewEnemyGeneration((Enemy_Smart) e);
+                runEnemy((Enemy_Smart) e);
+                shapeRenderer.setColor(e.getColor());
+                shapeRenderer.circle(e.x, e.y, e.radius);
+            }
         }
     }
 
     private void debugRender(){
-        if(Config.getDebug()) {
-            for (Entity e : enemies) {
-                Enemy_Smart enemy = (Enemy_Smart) e;
-                shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-                shapeRenderer.setColor(1, 51/255f, 153/255f, 1);
-                shapeRenderer.arc(e.x, e.y, enemy.visionLength(), enemy.getLooking(), enemy.visionWidth());
-                shapeRenderer.setColor(0, 1, 1, 1);
-                shapeRenderer.line(e.getPosition(), enemy.getClosest());
-                shapeRenderer.setColor(1, 0, 0, 1);
-                shapeRenderer.circle(e.x,e.y, enemy.playerAttackProximity());
-                shapeRenderer.setColor(0, 1, 0, 1);
-                shapeRenderer.circle(e.x,e.y, enemy.consumableProximity());
-                shapeRenderer.setColor(0, 0, 1, 1);
-                shapeRenderer.circle(e.x,e.y, enemy.fleeProximity());
-                shapeRenderer.end();
+        if(debug) {
+            for (Entity e : entities) {
+                if(!(e instanceof Player) && e != null) {
+                    Enemy_Smart enemy = (Enemy_Smart) e;
+                    shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+                    shapeRenderer.setColor(1, 51 / 255f, 153 / 255f, 1);
+                    shapeRenderer.arc(e.x, e.y, enemy.visionLength(), enemy.getLooking(), enemy.visionWidth());
+                    shapeRenderer.setColor(0, 1, 1, 1);
+                    shapeRenderer.line(e.getPosition(), enemy.getClosest());
+                    shapeRenderer.setColor(1, 0, 0, 1);
+                    shapeRenderer.circle(e.x, e.y, enemy.playerAttackProximity());
+                    shapeRenderer.setColor(0, 1, 0, 1);
+                    shapeRenderer.circle(e.x, e.y, enemy.consumableProximity());
+                    shapeRenderer.setColor(0, 0, 1, 1);
+                    shapeRenderer.circle(e.x, e.y, enemy.fleeProximity());
+                    shapeRenderer.end();
+                }
             }
         }
     }
@@ -250,7 +286,7 @@ public class GameScreen implements Screen {
     private void placeConsumables() {
         for (Consumable c : consumables) {
             checkNewConsumableGeneration();
-            shapeRenderer.setColor(1,0,0,1);
+            shapeRenderer.setColor(c.getColor());
             shapeRenderer.circle(c.x, c.y, c.radius);
         }
     }
@@ -258,14 +294,14 @@ public class GameScreen implements Screen {
     private void checkNewEnemyGeneration(Enemy_Smart e) {
         Enemy_Smart enemy = generateNewEnemy(e);
         if (enemy != null) {
-            enemies.add(enemy);
+            entities.add(enemy);
         }
     }
 
     private Enemy_Smart generateNewEnemy(Enemy_Smart e) {
         float probability = MathUtils.random();
-        if(probability < .0001) {
-            return new Enemy_Smart(new Vector2(randX(), randY()), e.getDna(), e.getGeneration());
+        if(probability < .0003) {
+            return new Enemy_Smart(new Vector2(randX(), randY()), e.getDna(), e.getGeneration(), entities.size++);
         }
 
         return null;
@@ -279,12 +315,17 @@ public class GameScreen implements Screen {
     }
 
     private Consumable generateNewConsumable() {
-        return new Consumable(new Vector2(randX(), randY()), Config.getNumberProperty("consumable_size"));
+        float probability = MathUtils.random();
+        return new Consumable(new Vector2(randX(), randY()), Config.getNumberProperty("consumable_size"), probability > .5);
     }
 
     private void generateConsumables() {
         for (int i = 0; i < C_AMT; i++) {
-            consumables.add(new Consumable(new Vector2(randX(), randY()), Config.getNumberProperty("consumable_size")));
+            consumables.add(new Consumable(new Vector2(randX(), randY()), Config.getNumberProperty("consumable_size"), false));
+        }
+
+        for(int i = 0; i < C_AMT; i++){
+            consumables.add(new Consumable(new Vector2(randX(), randY()), Config.getNumberProperty("consumable_size"), true));
         }
     }
 
@@ -292,12 +333,16 @@ public class GameScreen implements Screen {
         for (int i = 0; i < E_AMT; i++) {
             float x = randX();
             float y = randY();
-            enemies.add(new Enemy_Smart(new Vector2(x, y), null, 1));
+            entities.add(new Enemy_Smart(new Vector2(x, y), null, 1, i));
         }
     }
 
-    private void generatePlayers() {
-        player = new Player(new Vector2(50, 50), 5);
+    private void generatePlayer() {
+        if(players.size < 1) {
+            Player player = new Player(new Vector2(50, 50));
+            entities.add(player);
+            players.add(player);
+        }
     }
 
     private float randX() {

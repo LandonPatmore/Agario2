@@ -7,13 +7,11 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 
+import java.util.Date;
+
 public class Enemy_Smart extends Entity {
 
-    private final float H = Gdx.graphics.getWidth();
-    private final float W = Gdx.graphics.getHeight();
-
     private Vector2 currentTarget = new Vector2(Float.MAX_VALUE, Float.MAX_VALUE);
-    private final Vector2 CENTER = new Vector2(H /2, W / 2);
 
     private enum STATE{
         ATTACKING,
@@ -43,10 +41,13 @@ public class Enemy_Smart extends Entity {
 
     private STATE state = STATE.EATING;
 
+    private boolean fleeing;
 
-    public Enemy_Smart(Vector2 screenPos, float[] dna, int generation) {
-        super(screenPos, Config.getNumberProperty("player_size"));
+
+    public Enemy_Smart(Vector2 screenPos, float[] dna, int generation, int id) {
+        super(screenPos, Config.getNumberProperty("player_size"), String.valueOf(id));
         this.generation = generation;
+        this.fleeing = false;
         setDna(dna);
     }
 
@@ -85,16 +86,19 @@ public class Enemy_Smart extends Entity {
 
     private void flee(Array<Entity> entities, Array<Consumable> consumables){
         Vector2 position = getPosition();
-        currentTarget = new Vector2(0, 0);
-        for(int i = 0; i < entities.size; i++){
-            Entity e = entities.get(i);
-            if(e != this) {
-                if (position.dst(e.getPosition()) <= fleeProximity()) {
-                    for(int j = 0; j < consumables.size; j++){
-                        Consumable c = consumables.get(j);
-                        if(position.dst(c.getPosition()) >= fleeProximity()) {
-                            if(position.dst(c.getPosition()) > position.dst(currentTarget)){
-                                currentTarget = c.getPosition();
+        if(!fleeing) {
+            currentTarget = new Vector2(0, 0);
+            for (int i = 0; i < entities.size; i++) {
+                Entity e = entities.get(i);
+                if (e != this && e != null) {
+                    if (position.dst(e.getPosition()) <= fleeProximity()) {
+                        for (int j = 0; j < consumables.size; j++) {
+                            Consumable c = consumables.get(j);
+                            if (position.dst(c.getPosition()) >= fleeProximity()) {
+                                if (position.dst(c.getPosition()) > position.dst(currentTarget)) {
+                                    currentTarget = c.getPosition();
+                                    fleeing = true;
+                                }
                             }
                         }
                     }
@@ -102,19 +106,24 @@ public class Enemy_Smart extends Entity {
             }
         }
 
+        if(getPosition().dst(currentTarget) < 20){
+            fleeing = false;
+        }
+
         steer(currentTarget);
     }
 
     private void attack(Array<Entity> entities){
+        fleeing = false;
         Vector2 position = getPosition();
-        Enemy_Smart enemy = null;
+        Entity enemy = null;
         currentTarget = new Vector2(Float.MAX_VALUE, Float.MAX_VALUE);
         for(int i = 0; i < entities.size; i++){
             Entity e = entities.get(i);
-            if(e != this) {
+            if(e != this && e != null) {
                 if (inSight(e.getPosition()) || position.dst(e.getPosition()) <= playerAttackProximity()) {
                     if (position.dst(e.getPosition()) < position.dst(currentTarget)) {
-                        enemy = (Enemy_Smart) e;
+                        enemy = e;
                         currentTarget = e.getPosition();
                     }
                 }
@@ -132,13 +141,31 @@ public class Enemy_Smart extends Entity {
     }
 
     private void eat(Array<Consumable> consumables){
+        fleeing = false;
         Vector2 position = getPosition();
         currentTarget = new Vector2(Float.MAX_VALUE, Float.MAX_VALUE);
+
         for(int i = 0; i < consumables.size; i++){
             Consumable c = consumables.get(i);
             if(inSight(c.getPosition()) || position.dst(c.getPosition()) <= consumableProximity()) {
                 if(position.dst(c.getPosition()) < position.dst(currentTarget)){
-                    currentTarget = c.getPosition();
+                    if(!c.isPoison()) {
+                        currentTarget = c.getPosition();
+                    }
+                }
+            }
+        }
+
+        if(poisionAttraction() > consumableAttraction()){
+            currentTarget = new Vector2(Float.MAX_VALUE, Float.MAX_VALUE);
+            for(int i = 0; i < consumables.size; i++){
+                Consumable c = consumables.get(i);
+                if(inSight(c.getPosition()) || position.dst(c.getPosition()) <= consumableProximity()) {
+                    if(position.dst(c.getPosition()) < position.dst(currentTarget)){
+                        if(c.isPoison()) {
+                            currentTarget = c.getPosition();
+                        }
+                    }
                 }
             }
         }
@@ -149,9 +176,11 @@ public class Enemy_Smart extends Entity {
     private boolean checkFlee(Array<Entity> entities){
         for(int i = 0; i < entities.size; i++){
             Entity e = entities.get(i);
-            if(getPosition().dst(e.getPosition()) < fleeProximity()){
-                if(getHealth() < e.getHealth()) {
-                    return true;
+            if(e != this && e != null) {
+                if (getPosition().dst(e.getPosition()) < fleeProximity()) {
+                    if (getHealth() < e.getHealth()) {
+                        return true;
+                    }
                 }
             }
         }
@@ -161,9 +190,11 @@ public class Enemy_Smart extends Entity {
     private boolean checkAttack(Array<Entity> entities){
         for(int i = 0; i < entities.size; i++){
             Entity e = entities.get(i);
-            if(inSight(e.getPosition()) || getPosition().dst(e.getPosition()) < playerAttackProximity()){
-                if(getHealth() > e.getHealth()) {
-                    return true;
+            if(e != this && e != null) {
+                if (inSight(e.getPosition()) || getPosition().dst(e.getPosition()) < playerAttackProximity()) {
+                    if (getHealth() > e.getHealth()) {
+                        return true;
+                    }
                 }
             }
         }
@@ -180,10 +211,6 @@ public class Enemy_Smart extends Entity {
         return false;
     }
 
-    private boolean checkNearEdge(){
-        return (x > W - 50) || (x < 50) || (y > H - 50) || (y < 50);
-    }
-
     public int getGeneration() {
         return generation;
     }
@@ -198,9 +225,9 @@ public class Enemy_Smart extends Entity {
             this.dna = dna;
             mutate();
         } else {
-            this.dna[0] = MathUtils.random(radius, 100); // Vision width
+            this.dna[0] = MathUtils.random(radius, 200); // Vision width
             this.dna[1] = MathUtils.random(radius, 200); // Vision Length
-            this.dna[2] = MathUtils.random(0.01f, 0.03f); // Force
+            this.dna[2] = MathUtils.random(0.01f, 0.05f); // Force
             this.dna[3] = MathUtils.random(1, 4); // Speed
             this.dna[4] = MathUtils.random(radius, 200); // Proximity attack Player
             this.dna[5] = MathUtils.random(radius, 200); // Proximity flee Player
@@ -208,7 +235,7 @@ public class Enemy_Smart extends Entity {
             this.dna[7] = MathUtils.random(radius, 200); // Proximity flee Trap
             this.dna[8] = MathUtils.random(0, 10); // Consumable Attraction
             this.dna[9] = MathUtils.random(0, 10); // Poison Attraction
-            this.dna[10] = MathUtils.random(0.2f, 0.4f); // Health Depreciation
+            this.dna[10] = MathUtils.random(0.15f, 0.3f); // Health Depreciation
             this.dna[11] = MathUtils.random(this.dna[10] * 2, this.dna[10] * 4); // How much they life steal from another Player
 
         }
@@ -272,14 +299,20 @@ public class Enemy_Smart extends Entity {
         for (int i = 0; i < dna.length; i++) {
             float probability = MathUtils.random();
             if (probability < 0.01) {
-                if (i < 3) {
+                if (i < 2 || i > 3 && i < 8) {
                     float mutation = MathUtils.random(-10, 10);
                     dna[i] += mutation;
-                } else if (i == 3) {
+                } else if (i == 2) {
                     float mutation = MathUtils.random(-0.005f, 0.005f);
                     dna[i] += mutation;
+                } else if (i == 3) {
+                    float mutation = MathUtils.random(-0.1f, 0.1f);
+                    dna[i] += mutation;
+                } else if (i < 10){
+                    float mutation = MathUtils.random(-2, 2);
+                    dna[i] += mutation;
                 } else {
-                    float mutation = MathUtils.random(-0.5f, 0.5f);
+                    float mutation = MathUtils.random(-0.009f, 0.009f);
                     dna[i] += mutation;
                 }
             }

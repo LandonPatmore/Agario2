@@ -17,8 +17,8 @@ public class Player extends Entity {
     private final int S = Input.Keys.S;
     private final int D = Input.Keys.D;
 
-    public Player(Vector2 position, float radius) {
-        super(position, radius);
+    public Player(Vector2 position) {
+        super(position, Config.getNumberProperty("player_size"), "Player");
     }
 
     @Override
@@ -52,7 +52,7 @@ public class Player extends Entity {
     }
 
     @Override
-    void healthDecrease() {
+    public void healthDecrease() {
         float currentHealth = getHealth();
         setHealth(currentHealth - 0.3f);
         adjustColor();

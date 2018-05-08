@@ -13,9 +13,16 @@ public abstract class Entity extends Circle {
 
     private Color color;
 
+    private final String name;
 
-    public Entity(Vector2 position, float radius) {
+    private final long born = System.currentTimeMillis();
+    private long died;
+
+
+    public Entity(Vector2 position, float radius, String name) {
         super(position, radius);
+
+        this.name = name;
 
         this.color = new Color(0,1,0,1);
 
@@ -51,6 +58,14 @@ public abstract class Entity extends Circle {
         return health;
     }
 
+    public long getLifeSpan(){
+        return died - born;
+    }
+
+    public String getName() {
+        return name;
+    }
+
     public void setHealth(float health) {
         this.health = health;
     }
@@ -58,11 +73,8 @@ public abstract class Entity extends Circle {
     abstract void healthDecrease();
 
     // TODO: Based on consumable eaten
-    public void healthIncrease() {
-        health += 5f;
-        if(health > 255){
-            health = 255;
-        }
+    public void healthIncrease(float energy) {
+        health += energy;
         adjustColor();
     }
 
@@ -73,6 +85,11 @@ public abstract class Entity extends Circle {
     }
 
     public boolean checkIfDead(){
-        return health < 0;
+        if(health < 0) {
+            died = System.currentTimeMillis();
+            return true;
+        }
+
+        return false;
     }
 }
