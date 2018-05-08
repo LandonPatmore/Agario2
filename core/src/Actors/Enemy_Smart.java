@@ -52,7 +52,7 @@ public class Enemy_Smart extends Entity {
 
     private void update(Array<Consumable> consumables, Array<Entity> entities){
         if(state == STATE.FLEEING){
-            flee(entities);
+            flee(entities, consumables);
         } else if(state == STATE.ATTACKING){
             attack(entities);
         } else if(state == STATE.EATING){
@@ -83,14 +83,21 @@ public class Enemy_Smart extends Entity {
         update(consumables, entities);
     }
 
-    private void flee(Array<Entity> entities){
+    private void flee(Array<Entity> entities, Array<Consumable> consumables){
         Vector2 position = getPosition();
-        currentTarget = new Vector2(Float.MAX_VALUE, Float.MAX_VALUE);
+        currentTarget = new Vector2(0, 0);
         for(int i = 0; i < entities.size; i++){
             Entity e = entities.get(i);
             if(e != this) {
                 if (position.dst(e.getPosition()) <= fleeProximity()) {
-                    currentTarget = new Vector2(getPosition().x + 100, getPosition().y - 100);
+                    for(int j = 0; j < consumables.size; j++){
+                        Consumable c = consumables.get(j);
+                        if(position.dst(c.getPosition()) >= fleeProximity()) {
+                            if(position.dst(c.getPosition()) > position.dst(currentTarget)){
+                                currentTarget = c.getPosition();
+                            }
+                        }
+                    }
                 }
             }
         }
