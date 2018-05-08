@@ -13,12 +13,12 @@ public class Enemy_Smart extends Entity {
     private final float W = Gdx.graphics.getHeight();
 
     private Vector2 currentTarget = new Vector2(Float.MAX_VALUE, Float.MAX_VALUE);
+    private final Vector2 CENTER = new Vector2(H /2, W / 2);
 
     private enum STATE{
         ATTACKING,
         FLEEING,
-        EATING,
-        WANDERING
+        EATING
     }
 
     /**
@@ -35,7 +35,7 @@ public class Enemy_Smart extends Entity {
      * 10: Health Depreciation
      * 11: How much they hurt another Player
      */
-    private float[] dna = new float[11];
+    private float[] dna = new float[12];
 
     private int generation;
 
@@ -51,39 +51,73 @@ public class Enemy_Smart extends Entity {
     }
 
     private void update(Array<Consumable> consumables, Array<Entity> entities){
-        if(state == STATE.ATTACKING){
+        if(state == STATE.FLEEING){
+            flee(entities);
+        } else if(state == STATE.ATTACKING){
             attack(entities);
         } else if(state == STATE.EATING){
             eat(consumables);
-        } else {
-            wander();
         }
     }
 
+    public String currentState(){
+        if(state == STATE.FLEEING){
+            return "FLEEING";
+        } else if(state == STATE.ATTACKING){
+            return "ATTACKING";
+        } else if(state == STATE.EATING){
+            return "EATING";
+        }
+        return null;
+    }
+
     public void determineState(Array<Consumable> consumables, Array<Entity> entities){
-        if(checkAttack(entities)){
+        if(checkFlee(entities)){
+            state = STATE.FLEEING;
+        } else if(checkAttack(entities)) {
             state = STATE.ATTACKING;
         } else if(checkEat(consumables)){
             state = STATE.EATING;
-        } else {
-            state = STATE.WANDERING;
         }
 
         update(consumables, entities);
     }
 
-    private void flee(){
+    private void flee(Array<Entity> entities){
+        Vector2 position = getPosition();
+        currentTarget = new Vector2(Float.MAX_VALUE, Float.MAX_VALUE);
+        for(int i = 0; i < entities.size; i++){
+            Entity e = entities.get(i);
+            if(e != this) {
+                if (position.dst(e.getPosition()) <= fleeProximity()) {
+                    currentTarget = new Vector2(getPosition().x + 100, getPosition().y - 100);
+                }
+            }
+        }
 
+        steer(currentTarget);
     }
 
     private void attack(Array<Entity> entities){
         Vector2 position = getPosition();
+        Enemy_Smart enemy = null;
+        currentTarget = new Vector2(Float.MAX_VALUE, Float.MAX_VALUE);
         for(int i = 0; i < entities.size; i++){
             Entity e = entities.get(i);
-            if(inSight(e.getPosition()) || position.dst(e.getPosition()) <= playerAttackProximity()) {
-                if(position.dst(e.getPosition()) < position.dst(currentTarget)){
-                    currentTarget = e.getPosition();
+            if(e != this) {
+                if (inSight(e.getPosition()) || position.dst(e.getPosition()) <= playerAttackProximity()) {
+                    if (position.dst(e.getPosition()) < position.dst(currentTarget)) {
+                        enemy = (Enemy_Smart) e;
+                        currentTarget = e.getPosition();
+                    }
                 }
+            }
+        }
+
+        if(enemy != null){
+            if(this.overlaps(enemy)){
+                enemy.setHealth(enemy.getHealth() - lifeSteal());
+                setHealth(getHealth() + lifeSteal());
             }
         }
 
@@ -92,6 +126,7 @@ public class Enemy_Smart extends Entity {
 
     private void eat(Array<Consumable> consumables){
         Vector2 position = getPosition();
+        currentTarget = new Vector2(Float.MAX_VALUE, Float.MAX_VALUE);
         for(int i = 0; i < consumables.size; i++){
             Consumable c = consumables.get(i);
             if(inSight(c.getPosition()) || position.dst(c.getPosition()) <= consumableProximity()) {
@@ -104,19 +139,13 @@ public class Enemy_Smart extends Entity {
         steer(currentTarget);
     }
 
-    private void wander(){
-        if(checkNearEdge()){
-            steer(new Vector2(W / 2, H / 2));
-        } else {
-            steer(getVelocity());
-        }
-    }
-
     private boolean checkFlee(Array<Entity> entities){
         for(int i = 0; i < entities.size; i++){
             Entity e = entities.get(i);
-            if(e.getPosition().dst(e.getPosition()) < fleeProximity()){
-                return true;
+            if(getPosition().dst(e.getPosition()) < fleeProximity()){
+                if(getHealth() < e.getHealth()) {
+                    return true;
+                }
             }
         }
         return false;
@@ -125,8 +154,10 @@ public class Enemy_Smart extends Entity {
     private boolean checkAttack(Array<Entity> entities){
         for(int i = 0; i < entities.size; i++){
             Entity e = entities.get(i);
-            if(e.getPosition().dst(e.getPosition()) < consumableProximity()){
-                return true;
+            if(inSight(e.getPosition()) || getPosition().dst(e.getPosition()) < playerAttackProximity()){
+                if(getHealth() > e.getHealth()) {
+                    return true;
+                }
             }
         }
         return false;
@@ -143,8 +174,7 @@ public class Enemy_Smart extends Entity {
     }
 
     private boolean checkNearEdge(){
-        return (x > W) || (x < 0) || (y > H) || (y < 0);
-
+        return (x > W - 50) || (x < 50) || (y > H - 50) || (y < 50);
     }
 
     public int getGeneration() {
@@ -161,21 +191,23 @@ public class Enemy_Smart extends Entity {
             this.dna = dna;
             mutate();
         } else {
-            this.dna[0] = MathUtils.random(0, 100); // Vision width
-            this.dna[1] = MathUtils.random(0, 200); // Vision Length
-            this.dna[2] = MathUtils.random(0.01f, 0.1f); // Force
+            this.dna[0] = MathUtils.random(radius, 100); // Vision width
+            this.dna[1] = MathUtils.random(radius, 200); // Vision Length
+            this.dna[2] = MathUtils.random(0.01f, 0.03f); // Force
             this.dna[3] = MathUtils.random(1, 4); // Speed
-            this.dna[4] = MathUtils.random(this.dna[1] / 4, this.dna[1] / 1.2f); // Proximity attack Player
-            this.dna[5] = MathUtils.random(this.dna[1] / 4, this.dna[1] / 1.2f); // Proximity flee Player
-            this.dna[6] = MathUtils.random(this.dna[1] / 4, this.dna[1] / 1.2f); // Proximity eat Consumable
-            this.dna[7] = MathUtils.random(this.dna[1] / 4, this.dna[1] / 1.2f); // Proximity flee Trap
+            this.dna[4] = MathUtils.random(radius, 200); // Proximity attack Player
+            this.dna[5] = MathUtils.random(radius, 200); // Proximity flee Player
+            this.dna[6] = MathUtils.random(radius, 200); // Proximity eat Consumable
+            this.dna[7] = MathUtils.random(radius, 200); // Proximity flee Trap
             this.dna[8] = MathUtils.random(0, 10); // Consumable Attraction
             this.dna[9] = MathUtils.random(0, 10); // Poison Attraction
             this.dna[10] = MathUtils.random(0.2f, 0.4f); // Health Depreciation
-            this.dna[11] = MathUtils.random(this.dna[10] * 2, this.dna[10] * 4); // How much they hurt another Player
+            this.dna[11] = MathUtils.random(this.dna[10] * 2, this.dna[10] * 4); // How much they life steal from another Player
 
         }
     }
+
+
 
     public float visionWidth(){
         return this.dna[0];
@@ -221,8 +253,12 @@ public class Enemy_Smart extends Entity {
         return this.dna[10];
     }
 
-    public float hurtAmount(){
+    public float lifeSteal(){
         return this.dna[11];
+    }
+
+    public float getLooking() {
+        return looking;
     }
 
     private void mutate() {
@@ -267,7 +303,7 @@ public class Enemy_Smart extends Entity {
         Vector2 position = getPosition();
 
         velocity.add(acceleration);
-        velocity.limit(dna[4]);
+        velocity.limit(speed());
         position.add(velocity);
         setPosition(position);
 
@@ -275,7 +311,7 @@ public class Enemy_Smart extends Entity {
     }
 
     @Override
-    void healthDecrease() {
+    public void healthDecrease() {
         float currentHealth = getHealth();
         setHealth(currentHealth - healthDepreciation());
         adjustColor();

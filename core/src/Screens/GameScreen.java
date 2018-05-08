@@ -1,5 +1,8 @@
 package Screens;
 
+import Actors.Consumable;
+import Actors.Enemy_Smart;
+import Actors.Entity;
 import Actors.Player;
 import Utils.Config;
 import com.badlogic.gdx.*;
@@ -8,7 +11,9 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Array;
 
 public class GameScreen implements Screen {
 
@@ -25,9 +30,12 @@ public class GameScreen implements Screen {
     // Entity
     private Player player;
 
+    private Array<Entity> enemies = new Array<>();
+    private Array<Consumable> consumables = new Array<>();
+
     // Amount of each entity
-    private final int C_AMT = 1200;
-    private final int E_AMT = 25;
+    private final int C_AMT = 2000;
+    private final int E_AMT = 10;
 
     // Renderer
     private final ShapeRenderer shapeRenderer = new ShapeRenderer();
@@ -39,8 +47,8 @@ public class GameScreen implements Screen {
 
     public GameScreen(Game game) {
         this.game = game;
-//        generateConsumables();
-//        generateEnemies();
+        generateConsumables();
+        generateEnemies();
         generatePlayers();
         playerName = new BitmapFont();
         enemyName = new BitmapFont();
@@ -58,18 +66,19 @@ public class GameScreen implements Screen {
         camera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         camera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         camera.update();
+
+        shapeRenderer.setProjectionMatrix(camera.combined);
+        batch.setProjectionMatrix(camera.combined);
     }
 
     @Override
     public void render(float delta) {
-        shapeRenderer.setProjectionMatrix(camera.combined);
-        batch.setProjectionMatrix(camera.combined);
         setCamera();
         consumeInput();
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
         drawEntities();
         generatePlayerNumber();
-//        generateEnemyHealth();
+        generateEnemyHealth();
 //        checkAllPlayersEaten();
     }
 
@@ -107,11 +116,11 @@ public class GameScreen implements Screen {
 
     private void drawEntities() {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-//        placeConsumables();
-//        placeEnemies();
+        placeConsumables();
+        placeEnemies();
         placePlayer();
         shapeRenderer.end();
-//        debugRender();
+        debugRender();
     }
 
 //    private void checkAllPlayersEaten() {
@@ -127,21 +136,22 @@ public class GameScreen implements Screen {
         batch.end();
     }
 
-//    private void generateEnemyHealth() {
-//        batch.begin();
-//        for(Enemy_Smart e : enemies) {
-//            enemyName.draw(batch, String.valueOf(e.getHealth()) + " | Gen: " + e.getGeneration(), e.x, e.y);
-//        }
-//        batch.end();
-//    }
+    private void generateEnemyHealth() {
+        batch.begin();
+        for(Entity e : enemies) {
+            Enemy_Smart enemy = (Enemy_Smart) e;
+            enemyName.draw(batch, String.valueOf((int)e.getHealth()) + " | Gen: " + enemy.getGeneration() + " | " + ((Enemy_Smart) e).currentState(), e.x, e.y);
+        }
+        batch.end();
+    }
 
-//    private void enemyChecks(Enemy_Smart e) {
-//        e.healthDecrease();
+    private void runEnemy(Enemy_Smart e) {
+        e.healthDecrease();
 //        checkEnemyCollision(e);
-//        e.hunt(consumables, enemies);
-//        checkEnemyDead(e);
-//        checkEnemyAteConsumable(e);
-//    }
+        e.determineState(consumables, enemies);
+        checkEnemyDead(e);
+        checkEnemyAteConsumable(e);
+    }
 
 //    private void checkEnemyCollision(Enemy_Smart e){
 //        for(int i = 0; i < enemies.size; i++){
@@ -154,12 +164,12 @@ public class GameScreen implements Screen {
 //        }
 //    }
 
-//    private void checkEnemyDead(Enemy_Smart e){
-//        if(e.checkIfDead()){
-//            consumables.add(new Consumable(new Vector2(e.x,e.y), e.radius));
-//            enemies.removeValue(e, false);
-//        }
-//    }
+    private void checkEnemyDead(Enemy_Smart e){
+        if(e.checkIfDead()){
+            consumables.add(new Consumable(new Vector2(e.x,e.y), e.radius));
+            enemies.removeValue(e, false);
+        }
+    }
 
 //    private void checkPlayerDead(){
 //        if(player.checkIfDead()){
@@ -178,17 +188,20 @@ public class GameScreen implements Screen {
 //        }
 //    }
 
-//    private void checkEnemyAteConsumable(Enemy_Smart e) {
-//        for (Consumable c : consumables) {
-//            if (e.overlaps(c)) {
-//                e.healthIncrease();
-//                consumables.removeValue(c, false);
-//            }
-//        }
-//    }
+    private void checkEnemyAteConsumable(Enemy_Smart e) {
+        for (Consumable c : consumables) {
+            if (e.overlaps(c)) {
+                e.healthIncrease();
+                consumables.removeValue(c, false);
+            }
+        }
+    }
 
     private void consumeInput() {
         Input g = Gdx.input;
+        if(g.isKeyJustPressed(Input.Keys.SPACE)){
+            enemies.add(new Enemy_Smart(new Vector2(randX(), randY()), null, 1));
+        }
         player.move(g);
     }
 
@@ -202,90 +215,96 @@ public class GameScreen implements Screen {
 //            playerChecks();
             shapeRenderer.setColor(player.getColor());
             shapeRenderer.circle(player.x, player.y, player.radius);
+            shapeRenderer.circle(Gdx.graphics.getWidth() / 2, Gdx.graphics.getHeight() / 2, 2);
     }
 
-//    private void placeEnemies() {
-//        for (Enemy_Smart e : enemies) {
-//            checkNewEnemyGeneration(e);
-//            enemyChecks(e);
-//            shapeRenderer.setColor(e.color);
-//            shapeRenderer.circle(e.x, e.y, e.radius);
-//        }
-//    }
+    private void placeEnemies() {
+        for (Entity e : enemies) {
+            checkNewEnemyGeneration((Enemy_Smart) e);
+            runEnemy((Enemy_Smart) e);
+            shapeRenderer.setColor(e.getColor());
+            shapeRenderer.circle(e.x, e.y, e.radius);
+        }
+    }
 
-//    private void debugRender(){
-//        if(Config.getDebug()) {
-//            for (Enemy_Smart e : enemies) {
-//                shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-//                shapeRenderer.setColor(1, 0, 0, 1);
-//                shapeRenderer.arc(e.x, e.y, e.getDna()[1], e.looking(), e.getDna()[0]);
-//                shapeRenderer.setColor(0, 1, 0, 1);
-//                shapeRenderer.line(e.getPosition(), e.getClosest());
-//                shapeRenderer.setColor(0, 0, 1, 1);
-//                shapeRenderer.circle(e.x,e.y, e.getDna()[2]);
-//                shapeRenderer.end();
-//            }
-//        }
-//    }
+    private void debugRender(){
+        if(Config.getDebug()) {
+            for (Entity e : enemies) {
+                Enemy_Smart enemy = (Enemy_Smart) e;
+                shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+                shapeRenderer.setColor(1, 51/255f, 153/255f, 1);
+                shapeRenderer.arc(e.x, e.y, enemy.visionLength(), enemy.getLooking(), enemy.visionWidth());
+                shapeRenderer.setColor(0, 1, 1, 1);
+                shapeRenderer.line(e.getPosition(), enemy.getClosest());
+                shapeRenderer.setColor(1, 0, 0, 1);
+                shapeRenderer.circle(e.x,e.y, enemy.playerAttackProximity());
+                shapeRenderer.setColor(0, 1, 0, 1);
+                shapeRenderer.circle(e.x,e.y, enemy.consumableProximity());
+                shapeRenderer.setColor(0, 0, 1, 1);
+                shapeRenderer.circle(e.x,e.y, enemy.fleeProximity());
+                shapeRenderer.end();
+            }
+        }
+    }
 
-//    private void placeConsumables() {
-//        for (Consumable c : consumables) {
-//            checkNewConsumableGeneration();
-//            shapeRenderer.setColor(c.color);
-//            shapeRenderer.circle(c.x, c.y, c.radius);
-//        }
-//    }
+    private void placeConsumables() {
+        for (Consumable c : consumables) {
+            checkNewConsumableGeneration();
+            shapeRenderer.setColor(1,0,0,1);
+            shapeRenderer.circle(c.x, c.y, c.radius);
+        }
+    }
 
-//    private void checkNewEnemyGeneration(Enemy_Smart e) {
-//        Enemy_Smart enemy = generateNewEnemy(e);
-//        if (enemy != null) {
-//            enemies.add(enemy);
-//        }
-//    }
+    private void checkNewEnemyGeneration(Enemy_Smart e) {
+        Enemy_Smart enemy = generateNewEnemy(e);
+        if (enemy != null) {
+            enemies.add(enemy);
+        }
+    }
 
-//    private void checkNewConsumableGeneration() {
-//        if (consumables.size < C_AMT / 2 - 200) {
-//            Consumable c = generateNewConsumable();
-//            consumables.add(c);
-//        }
-//    }
+    private Enemy_Smart generateNewEnemy(Enemy_Smart e) {
+        float probability = MathUtils.random();
+        if(probability < .0001) {
+            return new Enemy_Smart(new Vector2(randX(), randY()), e.getDna(), e.getGeneration());
+        }
 
-//    private Enemy_Smart generateNewEnemy(Enemy_Smart e) {
-//        float probability = MathUtils.random();
-//        if(probability < .0005) {
-//            return new Enemy_Smart(new Vector2(randX(), randY()), e.getDna(), e.getGeneration());
-//        }
-//
-//        return null;
-//    }
+        return null;
+    }
 
-//    private Consumable generateNewConsumable() {
-//        return new Consumable(new Vector2(randX(), randY()), Config.getNumberProperty("consumable_size"));
-//    }
+    private void checkNewConsumableGeneration() {
+        if (consumables.size < C_AMT / 2) {
+            Consumable c = generateNewConsumable();
+            consumables.add(c);
+        }
+    }
 
-//    private void generateConsumables() {
-//        for (int i = 0; i < C_AMT; i++) {
-//            consumables.add(new Consumable(new Vector2(randX(), randY()), Config.getNumberProperty("consumable_size")));
-//        }
-//    }
+    private Consumable generateNewConsumable() {
+        return new Consumable(new Vector2(randX(), randY()), Config.getNumberProperty("consumable_size"));
+    }
 
-//    private void generateEnemies() {
-//        for (int i = 0; i < E_AMT; i++) {
-//            float x = randX();
-//            float y = randY();
-//            enemies.add(new Enemy_Smart(new Vector2(x, y), null, 1));
-//        }
-//    }
+    private void generateConsumables() {
+        for (int i = 0; i < C_AMT; i++) {
+            consumables.add(new Consumable(new Vector2(randX(), randY()), Config.getNumberProperty("consumable_size")));
+        }
+    }
+
+    private void generateEnemies() {
+        for (int i = 0; i < E_AMT; i++) {
+            float x = randX();
+            float y = randY();
+            enemies.add(new Enemy_Smart(new Vector2(x, y), null, 1));
+        }
+    }
 
     private void generatePlayers() {
         player = new Player(new Vector2(50, 50), 5);
     }
 
-//    private float randX() {
-//        return MathUtils.random(5, Config.getWidth() - 5);
-//    }
-//
-//    private float randY() {
-//        return MathUtils.random(5, Config.getHeight() - 5);
-//    }
+    private float randX() {
+        return MathUtils.random(5, Config.getWidth() - 5);
+    }
+
+    private float randY() {
+        return MathUtils.random(5, Config.getHeight() - 5);
+    }
 }

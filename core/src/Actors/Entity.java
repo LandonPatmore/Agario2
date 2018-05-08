@@ -67,7 +67,12 @@ public abstract class Entity extends Circle {
     }
 
     public void adjustColor(){
-        Color newColor = new Color().set(0,health/255,0,1);
+        float inverse = 255 - health;
+        Color newColor = new Color().set(inverse / 255,health/255,0,1);
         color.set(newColor);
+    }
+
+    public boolean checkIfDead(){
+        return health < 0;
     }
 }
